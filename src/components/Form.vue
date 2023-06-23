@@ -3,6 +3,9 @@
         <v-row>
             <v-col cols="12">
                 <v-form ref="form" @submit.prevent="submitForm" autocomplete="off">
+                    <label>
+                        This application asks you to input your Open AI API Key available at <a target="_blank" href="https://platform.openai.com/account/api-keys">https://platform.openai.com/account/api-keys</a>
+                    </label>
                     <v-text-field v-model="apiKey" label="API Key" required :append-icon="show1 ? 'mdi-eye' : 'mdi-eye-off'"
                         :type="show1 ? 'text' : 'password'" @click:append="show1 = !show1"></v-text-field>
 
@@ -26,7 +29,7 @@
     </v-container>
     <v-container fluid class="outputs">
         <v-row>
-            <workspace :workspace="workspace"></workspace>
+            <workspace :workspace="workspace" :folderName="projectName"></workspace>
         </v-row>
         <v-row>
             <v-col cols="12">

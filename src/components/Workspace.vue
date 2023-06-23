@@ -22,7 +22,7 @@
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 export default {
-    props: ['workspace'],
+    props: ['workspace','folderName'],
     computed: {
         files() {
             return Object.entries(this.workspace).map(file => ({ filename: file[0], content: file[1] }))
@@ -40,7 +40,7 @@ export default {
             const zipContent = await zip.generateAsync({ type: 'blob' });
 
             // Save and download the ZIP file
-            saveAs(zipContent, 'workspace.zip');
+            saveAs(zipContent, `${this.folderName}.zip`);
         }
     }
 }

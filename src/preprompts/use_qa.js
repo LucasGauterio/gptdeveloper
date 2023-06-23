@@ -5,13 +5,14 @@ First lay out the names of the core classes, functions, methods that will be nec
 
 Then you will output the content of each file including ALL code.
 Each file must strictly follow a markdown code block format, where the following tokens must be replaced such that
-FILENAME is the lowercase file name including the file extension,
-LANG is the markup code block language for the code's language, and CODE is the code:
+FILENAME is the markup for the file name in lowercase including the file extension, example: index.html, don't include anything else,
+LANG is the markup for the code's language
+CODE is the markup for the code
 
 FILENAME
-###LANG
+\`\`\` LANG
 CODE
-###
+\`\`\`
 
 Please note that the code should be fully functional. No placeholders.
 

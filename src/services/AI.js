@@ -59,6 +59,7 @@ export default class AI {
         {
             model: this.model,
             temperature: this.temperature,
+            top_p: 1.0,
             messages,
         },
         { timeout: 60000 }
@@ -72,16 +73,6 @@ export default class AI {
     }catch(e){
         console.error(e)
     }
-    /*
-    const chat = [];
-    for (const chunk of response) {
-      const delta = chunk.choices[0].delta;
-      const msg = delta.content || "";
-      console.log(msg);
-      chat.push(msg);
-    }
-    messages.push({ role: "assistant", content: chat.join("") });
-    console.log(`Chat completion finished: ${messages}`);*/
     return messages;
   }
 }

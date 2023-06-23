@@ -11,9 +11,9 @@ FILENAME is the lowercase file name including the file extension,
 LANG is the markup code block language for the code's language, and CODE is the code:
 
 FILENAME
-###LANG
+\`\`\`\LANG
 CODE
-###
+\`\`\`\
 
 You will start with the "entrypoint" file, then go to the ones that are imported by that file, and so on.
 Please note that the code should be fully functional. No placeholders.

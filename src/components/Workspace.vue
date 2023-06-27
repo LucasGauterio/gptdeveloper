@@ -1,19 +1,20 @@
 <template>
-    <v-container v-if="files.length > 0">
+    <v-container >
         <v-row>
-            <v-card>
-                <v-card-title>Workspace</v-card-title>
+            <v-card v-if="files.length > 0">
+                <v-card-title>{{ folderName }}.zip</v-card-title>
                 <v-card-text>
                     <div v-for="file in files">{{ file.filename }}</div>
                 </v-card-text>
                 <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn icon @click.stop="downloadFiles">
+                    <v-btn @click.stop="downloadFiles" block>
                         <v-icon>mdi-download</v-icon>
+                        Download
                         <v-tooltip activator="parent" location="start">Download</v-tooltip>
                     </v-btn>
                 </v-card-actions>
             </v-card>
+            <div v-if="files.length === 0">No files were generated yet</div>
         </v-row>
     </v-container>
 </template>

@@ -12,6 +12,7 @@
     "@mdi/font": "7.0.96",
     "core-js": "^3.29.0",
     "file-saver": "^2.0.5",
+    "gpt-tokenizer": "^2.1.1",
     "jszip": "^3.10.1",
     "openai": "^3.3.0",
     "roboto-fontface": "*",

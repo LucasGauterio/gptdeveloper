@@ -1,7 +1,7 @@
 import { Configuration, OpenAIApi } from "openai";
 
 export default class AI {
-  constructor(model = "gpt-4", temperature = 0.1, apiKey) {
+  constructor(model = "gpt-3.5-turbo", temperature = 0.1, apiKey) {
     this.temperature = temperature;
     this.model = model;
 
@@ -14,15 +14,12 @@ export default class AI {
   }
 
   async validateModel() {
-    var message = "";
+    var message;
     try {
       this.modelData = await this.openai.retrieveModel(this.model);
     } catch (error) {
-      console.error(error);
       message = `Model ${this.model} not available for provided API key. Reverting to gpt-3.5-turbo. Sign up for the GPT-4 wait list here: https://openai.com/waitlist/gpt-4-api`;
-      console.log(message);
       this.model = "gpt-3.5-turbo";
-      message = this.validateModel();
     }
     return message;
   }
@@ -48,13 +45,12 @@ export default class AI {
     return { role: "assistant", content: msg };
   }
 
-  async next(messages, prompt = null) {
+  async next(messages, prompt) {
     if (prompt) {
       messages.push({ role: "user", content: prompt });
     }
-
-    console.log(`Creating a new chat completion: ${JSON.stringify(messages)}`);
     try {
+        console.log(`Request sent to openai API ...`)
         const response = await this.openai.createChatCompletion(
         {
             model: this.model,
@@ -64,14 +60,13 @@ export default class AI {
         },
         { timeout: 60000 }
         );
-        console.log(JSON.stringify(response.data));
+        console.log(`Response received from openai API`)
         const response_text = response.data.choices[0].message.content.trim();
 
         messages.push({"role": "assistant", "content": response_text})
-
-        console.log(response_text);
     }catch(e){
-        console.error(e)
+      console.log(`Error received from openai API`)
+      console.error(e)
     }
     return messages;
   }

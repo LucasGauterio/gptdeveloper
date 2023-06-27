@@ -1,68 +1,194 @@
 <template>
-    <v-container fluid flat>
-        <v-row>
-            <v-col cols="12">
-                <v-form ref="form" @submit.prevent="submitForm" autocomplete="off">
-                    <label>
-                        This application asks you to input your Open AI API Key available at <a target="_blank" href="https://platform.openai.com/account/api-keys">https://platform.openai.com/account/api-keys</a>
-                    </label>
-                    <v-text-field v-model="apiKey" label="API Key" required :append-icon="show1 ? 'mdi-eye' : 'mdi-eye-off'"
-                        :type="show1 ? 'text' : 'password'" @click:append="show1 = !show1"></v-text-field>
+    <div class="text-center">
+        <v-snackbar
+        v-model="snackbar"
+        timeout="10000"
+        >
+        {{ snackbarMessage }}
 
-                    <v-select v-model="selectedModel" :items="models" label="Select ChatGPT Model" required></v-select>
+        <template v-slot:actions>
+            <v-btn
+            color="blue"
+            variant="text"
+            @click="snackbar = false"
+            >
+            Close
+            </v-btn>
+        </template>
+        </v-snackbar>
+    </div>
+    <v-container fluid class="page">
+        <v-container class="page_items">
+            <v-row v-if="status.generating">
+                <v-col cols="12">
+                    <v-progress-linear indeterminate height="4" color="secondary"></v-progress-linear>
+                </v-col>
+            </v-row>
+            <v-row>
+                <v-col cols="12">
+                    <v-expansion-panels v-model="expanded">
+                        <v-expansion-panel value="1" title="Configuration">
+                            <template v-slot:text>
+                                <p>This application need your Open AI API Key available at </p>
+                                <a target="_blank"
+                                    href="https://platform.openai.com/account/api-keys">https://platform.openai.com/account/api-keys</a>
+                                <v-form ref="form" @submit.prevent="submitForm" autocomplete="off">
+                                    <v-text-field v-model="apiKey" label="API Key" required
+                                        :append-icon="showApikey ? 'mdi-eye' : 'mdi-eye-off'"
+                                        :type="showApikey ? 'text' : 'password'"
+                                        @click:append="showApikey = !showApikey"></v-text-field>
 
-                    <v-text-field v-model="projectName" label="Software Project Name" required
-                        :rules="projectNameRules"></v-text-field>
+                                    <v-select v-model="selectedModel" :items="models" label="Select ChatGPT Model" required
+                                        :rules="apiKeyRules"></v-select>
 
-                    <v-textarea v-model="prompt" label="Software Functional Specification" required
-                        :counter="1000"></v-textarea>
+                                    <v-text-field v-model="projectName" label="Software Project Name" required
+                                        :rules="projectNameRules"></v-text-field>
 
-                    <v-btn :disabled="generating" @click.stop="generate" color="primary">Generate</v-btn>
-                </v-form>
-            </v-col>
-        </v-row>
-        <v-row v-if="generating">
-            <v-col cols="12" sm="12" md="12">
-                <v-progress-linear indeterminate height="4" color="secondary"></v-progress-linear>
-            </v-col>
-        </v-row>
-    </v-container>
-    <v-container fluid class="outputs">
-        <v-row>
-            <workspace :workspace="workspace" :folderName="projectName"></workspace>
-        </v-row>
-        <v-row>
-            <v-col cols="12">
-                <v-card class="mt-2" v-for="output in outputs">
-                    <v-card-title>{{ output.role }}</v-card-title>
-                    <v-card-text>
-                        <div v-for="line in output.lines">{{ line }}</div>
-                        <v-text-field v-for="(question, index) in output.questions" :label="question"
-                            v-model="answers[index]"></v-text-field>
-                    </v-card-text>
-                    <v-card-actions v-if="output.questions.length > 0">
-                        <v-btn @click.stop="next(output.questions)" color="primary">Answer</v-btn>
-                        <v-btn @click.stop="skip" color="primary">Skip</v-btn>
-                    </v-card-actions>
-                </v-card>
-            </v-col>
-        </v-row>
+                                    <v-label>Prompt {{ showTokens ? "in tokens" : "" }}</v-label>
+                                    <v-textarea v-if="!showTokens" v-model="prompt" required
+                                        :append-icon="showTokens ? 'mdi-eye' : 'mdi-eye-off'"
+                                        @click:append="showTokens = !showTokens">
+                                        <template v-slot:counter>
+                                            <div>Characters: {{ prompt.length }} Tokens: {{ detokens.length }}</div>
+                                        </template>
+                                    </v-textarea>
+                                    <v-row class="ma-0 mb-5" v-if="showTokens">
+                                        <v-col cols="11" class="tokens">
+                                            <v-chip v-for="(detoken, index) in detokens" :key="index" class="token"
+                                                :color="colors[index % colors.length]" label>
+                                                {{ detoken }}
+                                            </v-chip>
+                                        </v-col>
+                                        <v-col cols="1" class="text-right eye">
+                                            <v-icon class="text-right eye" :icon="showTokens ? 'mdi-eye' : 'mdi-eye-off'"
+                                                @click.stop="showTokens = !showTokens"></v-icon>
+                                        </v-col>
+                                    </v-row>
+                                    <v-select v-model="selectedConfig" :items="configs" label="Select the process"
+                                        required></v-select>
+
+                                    <v-btn :disabled="status.generating" @click.stop="run" color="primary">Generate</v-btn>
+                                </v-form>
+                            </template>
+                        </v-expansion-panel>
+                    </v-expansion-panels>
+                </v-col>
+            </v-row>
+            <v-row v-if="Object.entries(workspace)">
+                <v-col cols="12">
+                    <v-expansion-panels v-model="expanded">
+                        <v-expansion-panel value="2" title="Workspace">
+                            <template v-slot:text>
+                                <workspace :workspace="workspace" :folderName="projectName"></workspace>
+                            </template>
+                        </v-expansion-panel>
+                    </v-expansion-panels>
+                </v-col>
+            </v-row>
+            <v-row>
+                <v-col cols="12">
+                    <v-expansion-panels v-model="expanded" class="console">
+                        <v-expansion-panel value="3" title="Input" class="console">
+                            <template v-slot:text>
+                                <v-card class="mt-2" v-if="inputs.questions">
+                                    <v-card-title>{{ inputs.role }}</v-card-title>
+                                    <v-card-text>
+                                        <v-text-field v-for="(question, index) in inputs.questions" :label="question"
+                                            v-model="answers[index]"></v-text-field>
+                                    </v-card-text>
+                                    <v-card-actions>
+                                        <v-spacer></v-spacer>
+                                        <v-btn color="green" :disabled="this.answers.join('') === ''"
+                                            @click.stop="next(inputs.questions)">Answer</v-btn>
+                                        <v-btn color="orange" @click.stop="next()">Skip</v-btn>
+                                    </v-card-actions>
+                                </v-card>
+                                <div v-if="!inputs.questions">The assistant doesn't need user input at the moment</div>
+                            </template>
+                        </v-expansion-panel>
+                    </v-expansion-panels>
+                </v-col>
+            </v-row>
+        </v-container>
+        <v-expansion-panels v-model="expanded">
+            <v-expansion-panel value="4" title="Logs" id="console">
+                <template v-slot:text>
+                    <v-container class="output">
+                        <v-row>
+                            <v-col cols="12">
+                                <p v-if="this.gptDeveloper" v-for="message in this.gptDeveloper.getMessages()"><span
+                                        class="role">{{ message.role }}</span><span class="content">: {{ message.content
+                                        }}</span></p>
+                            </v-col>
+                        </v-row>
+                    </v-container>
+                </template>
+            </v-expansion-panel>
+        </v-expansion-panels>
     </v-container>
 </template>
-<style>
-.outputs {
-    background-color: lightgrey;
+<style scoped>
+#console::v-deep(.v-expansion-panel-text__wrapper) {
+    padding: 0 !important;
+}
+.role {
+    font-weight: bolder;
+    color: greenyellow;
+    text-decoration: underline;
+}
+
+.content {
+    font-weight: 100;
+    color: greenyellow;
+}
+
+.page {
+    display: flex;
+    flex-direction: column;
+    background-color: #F5F5F5;
+    height: 100%;
+    padding: 0 !important;
+    margin-left: 0 !important;
+}
+
+.page_items {
+    flex-grow: 1;
+}
+
+.output {
+    background-color: black;
+    font-family: 'Consolas';
+    flex-grow: 1;
+    max-height: 400px;
+    overflow-y: scroll;
+}
+
+.tokens {
+    background-color: #F5F5F5
+}
+
+.eye {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+}
+
+.token {
+    padding-right: 2px !important;
+    padding-left: 2px !important;
+    border-radius: 0 !important;
 }
 </style>
 <script>
-import Steps from '../services/Steps.js'
-import AI from '../services/AI.js'
 import Workspace from './Workspace.vue'
+import GptDeveloper from '@/services/GptDeveloper';
+import { encode, decode } from 'gpt-tokenizer'
 export default {
     components: { Workspace },
     data() {
         return {
-            show1: false,
+            expanded: "1",
+            showApikey: false,
+            showTokens: false,
             apiKey: import.meta.env.VITE_OPENAI_API_KEY,
             selectedModel: "gpt-3.5-turbo",
             models: ["gpt-3.5-turbo", "gpt-4"],
@@ -76,110 +202,97 @@ export default {
                     (v && v.length >= 3 && v.length <= 30 && /^[a-zA-Z0-9]+$/.test(v)) ||
                     "Project name must be between 3 and 30 characters and contain only letters and numbers"
             ],
+            apiKeyRules: [
+                (v) =>
+                    !!v ||
+                    "API key is required"
+            ],
+            colors: ['green', 'purple', 'red', 'blue'],
             ai: null,
-            step: 0,
-            outputs: [],
+            inputs: {},
             answers: [],
             messages: [],
             workspace: {},
-            generating: false,
+            configs: ['default'],
+            selectedConfig: "default",
+            gptDeveloper: null,
+            status: { generating: false, finished: false },
+            snackbarMessage: null,
+            snackbar: false
         };
     },
+    computed: {
+        tokens() {
+            return encode(this.prompt)
+        },
+        detokens() {
+            return this.tokens.map(token => decode([token]))
+        }
+    },
+    watch: {
+        status: {
+            handler(newVal, oldVal) {
+                if (newVal.finished) {
+                    this.expanded = "2"
+                } else if (newVal.generating) {
+                    this.expanded = ""
+                }
+                if (this.gptDeveloper) {
+                    this.messages = this.gptDeveloper.getMessages()
+                }
+            },
+            deep: true,
+            immediate: true
+        }
+    },
     methods: {
-        async generate() {
-            this.outputs = [];
-            this.answers = [];
-            this.messages = [];
-            if (this.$refs.form.validate()) {
-                this.step = 0
-                this.ai = new AI(
-                    this.selectedModel,
-                    0.1,
-                    this.apiKey
-                )
-                await this.ai.validateModel()
-                this.selectedModel = this.ai.model
-                //console.log(this.ai)
-                this.steps = Steps.STEPS["default"].map((step) => ({
-                    execute: step,
-                    fullfilled: false
-                }))
-
-                await this.runSteps(this.steps, this.ai, this.messages, this.workspace, this.prompt)
-
+        async run() {
+            this.outputs = []
+            this.answers = []
+            this.gptDeveloper = new GptDeveloper(
+                this.selectedConfig,
+                this.apiKey,
+                this.selectedModel,
+                this.project,
+                this.prompt
+            )
+            this.status = this.gptDeveloper.status
+            var message = await this.gptDeveloper.run()
+            if(message){
+                this.snackbar = true
+                this.snackbarMessage = message
+            }else{
+                this.questions()
+                this.workspace = this.gptDeveloper.getWorkspace()
             }
         },
-        async skip() {
-            this.outputs = []
-            console.log('skip')
-            var step = this.steps.find(step => !step.fullfilled)
-            step.fullfilled = true
-            console.log('skip', this.steps)
-            await this.runSteps(this.steps, this.ai, this.messages, this.workspace, "")
-        },
-        async fullfillStep() {
-            console.log('continueProcessing', this.messages)
+        questions() {
+            this.messages = this.gptDeveloper.getMessages()
             var lastMessage = this.messages[this.messages.length - 1]
-            this.addOutput(lastMessage)
-            if (lastMessage.content.toLowerCase().indexOf('?') === -1) {
-                var step = this.steps.find(step => !step.fullfilled)
-                step.fullfilled = true
-                return true
-            } else {
-                console.log('awaiting user input')
-                this.awaiting = true
-                return false
+            var questions = []
+            if (lastMessage.content.indexOf('?') > -1) {
+                questions = questions.concat(lastMessage.content.split('\n').slice(1))
+            }
+            if (questions.length > 0) {
+                this.inputs = {
+                    role: lastMessage.role, questions
+                }
+                this.expanded = "3"
             }
         },
         async next(lines) {
-            this.generating = true
-            this.outputs = []
-            if (this.answers.join('') === '') {
-                this.skip();
-            } else {
+            this.inputs = {}
+            var answer = 'skip'
+            if (lines) {
                 var questionsAnswers = []
                 lines.forEach((question, index) => questionsAnswers.push(
                     `${question} ${this.answers[index]}`
                 ))
-                var answer = `user clarifications:\n ${questionsAnswers.join('\n')}`;
-                console.log(answer)
-                await this.runSteps(this.steps, this.ai, this.messages, this.workspace, answer)
+                answer = `user clarifications:\n ${questionsAnswers.join('\n')}`
             }
-            this.generating = false
-        },
-        async runSteps(steps, ai, messages, workspace, prompt) {
-            this.generating = true
-            var step = steps.find(step => !step.fullfilled)
-            if (step) {
-                var stepResult = await step.execute(ai, messages, workspace, prompt)
-                console.log('stepResult', stepResult)
-                this.messages = stepResult.messages
-                this.workspace = stepResult.workspace
-                this.generating = false
-                if (await this.fullfillStep()) {
-                    await this.runSteps(this.steps, this.ai, this.messages, this.workspace, this.prompt)
-                }
-            }
-            this.generating = false
-        },
-
-        addOutput(message) {
-            var lines = []
-            var questions = []
-            if (message.content.indexOf('?') > -1) {
-                questions = questions.concat(message.content.split('\n').slice(1))
-            } else {
-                var localMessage = message.content.length > 2 ? message.content.substring(0, 2) : message.content
-                if (localMessage.toLowerCase() !== 'no') {
-                    lines = message.content.split('\n')
-                }
-            }
-            if (lines.length > 0 || questions.length > 0) {
-                this.outputs.push({
-                    ...message, lines, questions
-                })
-            }
-            console.log(this.outputs)
+            this.gptDeveloper.getPrompts().prompt = answer
+            await this.gptDeveloper.run()
+            this.questions()
         },
     }
 };

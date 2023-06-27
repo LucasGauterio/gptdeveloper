@@ -59,6 +59,7 @@ export default class GptDeveloper {
             this.awaiting = true
         }
         this.status.generating = this.steps.find(step => !step.fullfilled) !== undefined
+        this.status.finished = this.steps.find(step => !step.fullfilled) === undefined
         return step.fullfilled
     }
 

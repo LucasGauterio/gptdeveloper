@@ -55,6 +55,8 @@ async function gen_clarified_code(ai, dbs) {
   //Takes clarification and generates code
   var messages = [ai.fsystem(setup_sys_prompt(dbs))].concat(dbs.messages.slice(1));
   messages = await ai.next(messages, use_qa);
+  console.log('messages', messages)
+  messages.forEach(message => dbs.messages.push(message));
   to_files(
     messages[messages.length - 1]["content"], dbs.workspace
   );

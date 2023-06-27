@@ -1,6 +1,11 @@
 <template>
     <v-container fluid class="page">
         <v-container class="page_items">
+            <v-row v-if="status.generating">
+                <v-col cols="12">
+                    <v-progress-linear indeterminate height="4" color="secondary"></v-progress-linear>
+                </v-col>
+            </v-row>
             <v-row>
                 <v-col cols="12">
                     <v-expansion-panels v-model="expanded">
@@ -15,8 +20,8 @@
                                         :type="showApikey ? 'text' : 'password'"
                                         @click:append="showApikey = !showApikey"></v-text-field>
 
-                                    <v-select v-model="selectedModel" :items="models" label="Select ChatGPT Model"
-                                        required></v-select>
+                                    <v-select v-model="selectedModel" :items="models" label="Select ChatGPT Model" required
+                                        :rules="apiKeyRules"></v-select>
 
                                     <v-text-field v-model="projectName" label="Software Project Name" required
                                         :rules="projectNameRules"></v-text-field>
@@ -51,50 +56,93 @@
                     </v-expansion-panels>
                 </v-col>
             </v-row>
-            <v-row v-if="status.generating">
-                <v-col cols="12" sm="12" md="12">
-                    <v-progress-linear indeterminate height="4" color="secondary"></v-progress-linear>
+            <v-row v-if="Object.entries(workspace)">
+                <v-col cols="12">
+                    <v-expansion-panels v-model="expanded">
+                        <v-expansion-panel value="2" title="Workspace">
+                            <template v-slot:text>
+                                <workspace :workspace="workspace" :folderName="projectName"></workspace>
+                            </template>
+                        </v-expansion-panel>
+                    </v-expansion-panels>
                 </v-col>
             </v-row>
-            <v-row v-if="Object.entries(workspace)">
-                <workspace :workspace="workspace" :folderName="projectName"></workspace>
-            </v-row>
-        </v-container>
-
-        <v-container class="page_items outputs">
             <v-row>
                 <v-col cols="12">
-                    <v-card class="mt-2" v-for="output in outputs">
-                        <v-card-title>{{ output.role }}</v-card-title>
-                        <v-card-text>
-                            <v-text-field v-for="(question, index) in output.questions" :label="question"
-                                v-model="answers[index]"></v-text-field>
-                        </v-card-text>
-                        <v-card-actions v-if="output.questions.length > 0">
-                            <v-spacer></v-spacer>
-                            <v-btn color="green" :disabled="this.answers.join('') === ''"
-                                @click.stop="next(output.questions)">Answer</v-btn>
-                            <v-btn color="orange" @click.stop="next()">Skip</v-btn>
-                        </v-card-actions>
-                    </v-card>
+                    <v-expansion-panels v-model="expanded" class="console">
+                        <v-expansion-panel value="3" title="Input" class="console">
+                            <template v-slot:text>
+                                <v-card class="mt-2" v-if="inputs.questions">
+                                    <v-card-title>{{ inputs.role }}</v-card-title>
+                                    <v-card-text>
+                                        <v-text-field v-for="(question, index) in inputs.questions" :label="question"
+                                            v-model="answers[index]"></v-text-field>
+                                    </v-card-text>
+                                    <v-card-actions>
+                                        <v-spacer></v-spacer>
+                                        <v-btn color="green" :disabled="this.answers.join('') === ''"
+                                            @click.stop="next(inputs.questions)">Answer</v-btn>
+                                        <v-btn color="orange" @click.stop="next()">Skip</v-btn>
+                                    </v-card-actions>
+                                </v-card>
+                                <div v-if="!inputs.questions">The assistant doesn't need user input at the moment</div>
+                            </template>
+                        </v-expansion-panel>
+                    </v-expansion-panels>
                 </v-col>
             </v-row>
         </v-container>
+        <v-expansion-panels v-model="expanded">
+            <v-expansion-panel value="4" title="Logs" id="console">
+                <template v-slot:text>
+                    <v-container class="output">
+                        <v-row>
+                            <v-col cols="12">
+                                <p v-if="this.gptDeveloper" v-for="message in this.gptDeveloper.getMessages()"><span
+                                        class="role">{{ message.role }}</span><span class="content">: {{ message.content
+                                        }}</span></p>
+                            </v-col>
+                        </v-row>
+                    </v-container>
+                </template>
+            </v-expansion-panel>
+        </v-expansion-panels>
     </v-container>
 </template>
-<style>
+<style scoped>
+#console::v-deep(.v-expansion-panel-text__wrapper) {
+    padding: 0 !important;
+}
+.role {
+    font-weight: bolder;
+    color: greenyellow;
+    text-decoration: underline;
+}
+
+.content {
+    font-weight: 100;
+    color: greenyellow;
+}
+
 .page {
     display: flex;
     flex-direction: column;
-    background-color: #F5F5F5
+    background-color: #F5F5F5;
+    height: 100%;
+    padding: 0 !important;
+    margin-left: 0 !important;
 }
 
 .page_items {
     flex-grow: 1;
 }
 
-.outputs {
-    background-color: #F5F5F5
+.output {
+    background-color: black;
+    font-family: 'Consolas';
+    flex-grow: 1;
+    max-height: 400px;
+    overflow-y: scroll;
 }
 
 .tokens {
@@ -136,15 +184,21 @@ export default {
                     (v && v.length >= 3 && v.length <= 30 && /^[a-zA-Z0-9]+$/.test(v)) ||
                     "Project name must be between 3 and 30 characters and contain only letters and numbers"
             ],
+            apiKeyRules: [
+                (v) =>
+                    !!v ||
+                    "API key is required"
+            ],
             colors: ['green', 'purple', 'red', 'blue'],
             ai: null,
-            outputs: [],
+            inputs: {},
             answers: [],
             messages: [],
             workspace: {},
             configs: ['default'],
             selectedConfig: "default",
-            gptDeveloper: null
+            gptDeveloper: null,
+            status: { generating: false, finished: false }
         };
     },
     computed: {
@@ -153,14 +207,28 @@ export default {
         },
         detokens() {
             return this.tokens.map(token => decode([token]))
-        },
-        status(){
-            return this.gptDeveloper ? this.gptDeveloper.status : { generating:  false }
+        }
+    },
+    watch: {
+        status: {
+            handler(newVal, oldVal) {
+                if (newVal.finished) {
+                    this.expanded = "2"
+                } else if (newVal.generating) {
+                    this.expanded = ""
+                }
+                if (this.gptDeveloper) {
+                    this.messages = this.gptDeveloper.getMessages()
+                }
+            },
+            deep: true,
+            immediate: true
         }
     },
     methods: {
         async run() {
-            this.generating = true
+            this.outputs = []
+            this.answers = []
             this.gptDeveloper = new GptDeveloper(
                 this.selectedConfig,
                 this.apiKey,
@@ -168,6 +236,7 @@ export default {
                 this.project,
                 this.prompt
             )
+            this.status = this.gptDeveloper.status
             await this.gptDeveloper.run()
             this.questions()
             this.workspace = this.gptDeveloper.getWorkspace()
@@ -180,14 +249,14 @@ export default {
                 questions = questions.concat(lastMessage.content.split('\n').slice(1))
             }
             if (questions.length > 0) {
-                this.outputs.push({
+                this.inputs = {
                     role: lastMessage.role, questions
-                })
+                }
+                this.expanded = "3"
             }
         },
         async next(lines) {
-            this.generating = true
-            this.outputs = []
+            this.inputs = {}
             var answer = 'skip'
             if (lines) {
                 var questionsAnswers = []
@@ -197,7 +266,8 @@ export default {
                 answer = `user clarifications:\n ${questionsAnswers.join('\n')}`
             }
             this.gptDeveloper.getPrompts().prompt = answer
-            this.gptDeveloper.run()
+            await this.gptDeveloper.run()
+            this.questions()
         },
     }
 };

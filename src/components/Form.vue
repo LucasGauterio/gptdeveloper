@@ -36,10 +36,10 @@
                                     <v-text-field v-model="apiKey" label="API Key" required
                                         :append-icon="showApikey ? 'mdi-eye' : 'mdi-eye-off'"
                                         :type="showApikey ? 'text' : 'password'"
-                                        @click:append="showApikey = !showApikey"></v-text-field>
+                                        @click:append="showApikey = !showApikey" :rules="apiKeyRules"></v-text-field>
 
                                     <v-select v-model="selectedModel" :items="models" label="Select ChatGPT Model" required
-                                        :rules="apiKeyRules"></v-select>
+                                        ></v-select>
 
                                     <v-text-field v-model="projectName" label="Software Project Name" required
                                         :rules="projectNameRules"></v-text-field>

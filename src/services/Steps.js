@@ -15,81 +15,64 @@ const Config = {
   EXECUTE_ONLY: "execute_only",
   USE_FEEDBACK: "use_feedback",
 };
-function setup_sys_prompt() {
-  return generate + "\nUseful to know:\n" + philosophy;
-}
-async function clarify(ai, messages, workspace, prompt) {
-  console.log("clarify");
-  let user = prompt;
-  var new_messages = [];
-  if (prompt.toLowerCase().startsWith("user clarifications:")) {
-    if (prompt !== "") {
-      user +=
-        "\n\n" +
-        "Is anything else unclear? If yes, only answer in the form:\n" +
-        "{remaining unclear areas} remaining questions.\n" +
-        "{Next question}\n" +
-        'If everything is sufficiently clear, only answer "no".';
-    }
-  } else {
-    new_messages = [ai.fsystem(qa)];
+function setup_sys_prompt(dbs) {
+  if(dbs){
+    return dbs.preprompts.sys_prompt
   }
-  new_messages = await ai.next(new_messages, user);
-  const response = {
-    messages: messages.concat(new_messages),
-    workspace: { ...workspace },
-  };
-  console.log("clarify", response);
-  return response;
+  return generate + "\nUseful to know:\n" + philosophy
 }
-async function gen_clarified_code(ai, messages, workspace, prompt) {
-  console.log("gen_clarified_code");
-  var new_messages = [ai.fsystem(setup_sys_prompt())].concat(messages.slice(1));
-  new_messages = await ai.next(new_messages, use_qa);
-  let new_workspace = to_files(
-    new_messages[new_messages.length - 1]["content"]
+function get_prompt(dbs){
+  if(dbs.prompts.prompt){
+    return dbs.prompts.prompt
+  }
+  return dbs.prompts.main_prompt
+}
+async function simple_gen(ai, dbs){
+  var new_messages = []
+  new_messages = await ai.start(setup_sys_prompt(dbs), get_prompt(dbs))
+  to_files(
+    new_messages[new_messages.length - 1]["content"], dbs.workspace
+  )
+  return messages
+}
+async function clarify(ai, dbs) {
+  //Ask the user if they want to clarify anything and save the results to the workspace
+  let user = get_prompt(dbs)
+  var prompt = dbs.prompts.prompt || ""
+  var hasAnswer = prompt.toLowerCase().startsWith("user clarifications:")
+  var skip = prompt.toLowerCase() === "skip"
+  
+  if (hasAnswer) {
+      user += dbs.preprompts.qa_unclear
+  }else if(skip){
+    user = dbs.preprompts.qa_assumptions
+  } else {
+    dbs.messages = [ai.fsystem(dbs.preprompts.qa)]
+  }
+  await ai.next(dbs.messages, user)
+}
+async function gen_clarified_code(ai, dbs) {
+  //Takes clarification and generates code
+  var messages = [ai.fsystem(setup_sys_prompt(dbs))].concat(dbs.messages.slice(1));
+  messages = await ai.next(messages, use_qa);
+  to_files(
+    messages[messages.length - 1]["content"], dbs.workspace
   );
-
-  const response = {
-    messages: messages.concat(new_messages),
-    workspace: { ...workspace, ...new_workspace },
-  };
-  console.log("gen_clarified_code", response);
-  return response;
 }
-async function gen_entrypoint(ai, messages, workspace, prompt) {
-  console.log("gen_entrypoint");
+async function gen_entrypoint(ai, dbs) {
   let new_messages = await ai.start(
-    "You will get information about a codebase that is currently on disk in " +
-      "the current folder.\n" +
-      "From this you will answer with code blocks that includes all the necessary " +
-      "unix terminal commands to " +
-      "a) install dependencies " +
-      "b) run all necessary parts of the codebase (in parallell if necessary).\n" +
-      "Do not install globally. Do not use sudo.\n" +
-      "Do not explain the code, just give the commands.\n" +
-      "Do not use placeholders, use example values (like . for a folder argument) " +
-      "if necessary.\n",
-    "Information about the codebase:\n\n" + workspace["all_output.txt"]
+    dbs.preprompts.entrypoint_system,
+    `${dbs.preprompts.entrypoint_user}${dbs.workspace["all_output.txt"]}`
   );
   const regex = /```([^]+?)```/g;
   const matches = Array.from(
     new_messages[new_messages.length - 1]["content"].matchAll(regex)
   );
-  let new_workspace = {
-    "run.sh": matches.map((match) => match[1]).join("\n") 
-  };
-
-  const response = {
-    messages: messages.concat(new_messages),
-    workspace: { ...workspace, ...new_workspace },
-  };
-  console.log("gen_entrypoint", response);
-  return response;
+  dbs.workspace["run.sh"] = matches.map((match) => match[1]).join("\n");
 }
 
 export default {
   STEPS: {
-    default: [clarify, gen_clarified_code, gen_entrypoint],
+    default: [clarify, gen_clarified_code/*, gen_entrypoint*/],
   },
 };

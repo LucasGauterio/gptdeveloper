@@ -1,5 +1,5 @@
 <template>
-    <v-footer color="primary">
+    <v-footer color="primary" class="footer">
         <v-row justify="center" no-gutters>
             <v-btn v-for="link in links" :key="link" color="white" variant="text" class="mx-2" rounded="xl">
                 <a :href="link.url" target="_blank">
@@ -16,6 +16,9 @@
 a {
   text-decoration: none;
   color: white;
+}
+.footer {
+  max-height: 100px;
 }
 </style>
 <script>

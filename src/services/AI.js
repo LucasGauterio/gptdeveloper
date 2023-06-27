@@ -48,7 +48,7 @@ export default class AI {
     return { role: "assistant", content: msg };
   }
 
-  async next(messages, prompt = null) {
+  async next(messages, prompt) {
     if (prompt) {
       messages.push({ role: "user", content: prompt });
     }
@@ -64,12 +64,11 @@ export default class AI {
         },
         { timeout: 60000 }
         );
-        console.log(JSON.stringify(response.data));
         const response_text = response.data.choices[0].message.content.trim();
 
         messages.push({"role": "assistant", "content": response_text})
 
-        console.log(response_text);
+        console.log(`After chat completion: ${JSON.stringify(messages)}`);
     }catch(e){
         console.error(e)
     }

@@ -1,4 +1,4 @@
-export function parse_chat(chat) {
+export const parse_chat = (chat) => {
   const regex = /(\S+)\n\s*```[^\n]*\n([\s\S]+?)```/g;
   const files = [];
   let match;
@@ -28,7 +28,7 @@ export function parse_chat(chat) {
   return files;
 }
 
-export function to_files(chat, workspace) {
+export const to_files = (chat, workspace) => {
   workspace["all_output.txt"] = chat;
 
   const files = parse_chat(chat);

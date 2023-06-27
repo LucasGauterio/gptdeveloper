@@ -1,20 +1,13 @@
 <template>
     <div class="text-center">
-        <v-snackbar
-        v-model="snackbar"
-        timeout="10000"
-        >
-        {{ snackbarMessage }}
+        <v-snackbar v-model="snackbar" timeout="10000">
+            {{ snackbarMessage }}
 
-        <template v-slot:actions>
-            <v-btn
-            color="blue"
-            variant="text"
-            @click="snackbar = false"
-            >
-            Close
-            </v-btn>
-        </template>
+            <template v-slot:actions>
+                <v-btn color="blue" variant="text" @click="snackbar = false">
+                    Close
+                </v-btn>
+            </template>
         </v-snackbar>
     </div>
     <v-container fluid class="page">
@@ -29,46 +22,7 @@
                     <v-expansion-panels v-model="expanded">
                         <v-expansion-panel value="1" title="Configuration">
                             <template v-slot:text>
-                                <p>This application need your Open AI API Key available at </p>
-                                <a target="_blank"
-                                    href="https://platform.openai.com/account/api-keys">https://platform.openai.com/account/api-keys</a>
-                                <v-form ref="form" @submit.prevent="submitForm" autocomplete="off">
-                                    <v-text-field v-model="apiKey" label="API Key" required
-                                        :append-icon="showApikey ? 'mdi-eye' : 'mdi-eye-off'"
-                                        :type="showApikey ? 'text' : 'password'"
-                                        @click:append="showApikey = !showApikey" :rules="apiKeyRules"></v-text-field>
-
-                                    <v-select v-model="selectedModel" :items="models" label="Select ChatGPT Model" required
-                                        ></v-select>
-
-                                    <v-text-field v-model="projectName" label="Software Project Name" required
-                                        :rules="projectNameRules"></v-text-field>
-
-                                    <v-label>Prompt {{ showTokens ? "in tokens" : "" }}</v-label>
-                                    <v-textarea v-if="!showTokens" v-model="prompt" required
-                                        :append-icon="showTokens ? 'mdi-eye' : 'mdi-eye-off'"
-                                        @click:append="showTokens = !showTokens">
-                                        <template v-slot:counter>
-                                            <div>Characters: {{ prompt.length }} Tokens: {{ detokens.length }}</div>
-                                        </template>
-                                    </v-textarea>
-                                    <v-row class="ma-0 mb-5" v-if="showTokens">
-                                        <v-col cols="11" class="tokens">
-                                            <v-chip v-for="(detoken, index) in detokens" :key="index" class="token"
-                                                :color="colors[index % colors.length]" label>
-                                                {{ detoken }}
-                                            </v-chip>
-                                        </v-col>
-                                        <v-col cols="1" class="text-right eye">
-                                            <v-icon class="text-right eye" :icon="showTokens ? 'mdi-eye' : 'mdi-eye-off'"
-                                                @click.stop="showTokens = !showTokens"></v-icon>
-                                        </v-col>
-                                    </v-row>
-                                    <v-select v-model="selectedConfig" :items="configs" label="Select the process"
-                                        required></v-select>
-
-                                    <v-btn :disabled="status.generating" @click.stop="run" color="primary">Generate</v-btn>
-                                </v-form>
+                                <configuration :generating="status.generating" @generate="generate"></configuration>
                             </template>
                         </v-expansion-panel>
                     </v-expansion-panels>
@@ -90,20 +44,7 @@
                     <v-expansion-panels v-model="expanded" class="console">
                         <v-expansion-panel value="3" title="Input" class="console">
                             <template v-slot:text>
-                                <v-card class="mt-2" v-if="inputs.questions">
-                                    <v-card-title>{{ inputs.role }}</v-card-title>
-                                    <v-card-text>
-                                        <v-text-field v-for="(question, index) in inputs.questions" :label="question"
-                                            v-model="answers[index]"></v-text-field>
-                                    </v-card-text>
-                                    <v-card-actions>
-                                        <v-spacer></v-spacer>
-                                        <v-btn color="green" :disabled="this.answers.join('') === ''"
-                                            @click.stop="next(inputs.questions)">Answer</v-btn>
-                                        <v-btn color="orange" @click.stop="next()">Skip</v-btn>
-                                    </v-card-actions>
-                                </v-card>
-                                <div v-if="!inputs.questions">The assistant doesn't need user input at the moment</div>
+                                <answers-input :input="input" @answer="next" @skip="next"></answers-input>
                             </template>
                         </v-expansion-panel>
                     </v-expansion-panels>
@@ -131,6 +72,7 @@
 #console::v-deep(.v-expansion-panel-text__wrapper) {
     padding: 0 !important;
 }
+
 .role {
     font-weight: bolder;
     color: greenyellow;
@@ -180,45 +122,26 @@
 </style>
 <script>
 import Workspace from './Workspace.vue'
+import AnswersInput from './Input.vue'
+import Configuration from './Configuration.vue'
 import GptDeveloper from '@/services/GptDeveloper';
 import { encode, decode } from 'gpt-tokenizer'
 export default {
-    components: { Workspace },
+    components: { Workspace, AnswersInput, Configuration },
     data() {
         return {
+            generating: false,
+            finished: false,
             expanded: "1",
-            showApikey: false,
-            showTokens: false,
-            apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-            selectedModel: "gpt-3.5-turbo",
-            models: ["gpt-3.5-turbo", "gpt-4"],
-            projectName: "myproject",
-            prompt: "create a HTML page saying: Hello World!",
-            projectNameRules: [
-                (v) =>
-                    !!v ||
-                    "Project name is required",
-                (v) =>
-                    (v && v.length >= 3 && v.length <= 30 && /^[a-zA-Z0-9]+$/.test(v)) ||
-                    "Project name must be between 3 and 30 characters and contain only letters and numbers"
-            ],
-            apiKeyRules: [
-                (v) =>
-                    !!v ||
-                    "API key is required"
-            ],
-            colors: ['green', 'purple', 'red', 'blue'],
-            ai: null,
-            inputs: {},
+            input: {},
             answers: [],
             messages: [],
             workspace: {},
-            configs: ['default'],
-            selectedConfig: "default",
             gptDeveloper: null,
             status: { generating: false, finished: false },
             snackbarMessage: null,
-            snackbar: false
+            snackbar: false,
+            projectName: "",
         };
     },
     computed: {
@@ -246,22 +169,23 @@ export default {
         }
     },
     methods: {
-        async run() {
+        async generate(params) {
             this.outputs = []
             this.answers = []
             this.gptDeveloper = new GptDeveloper(
-                this.selectedConfig,
-                this.apiKey,
-                this.selectedModel,
-                this.project,
-                this.prompt
+                params.config,
+                params.apiKey,
+                params.model,
+                params.projectName,
+                params.prompt
             )
+            this.projectName = params.projectName
             this.status = this.gptDeveloper.status
             var message = await this.gptDeveloper.run()
-            if(message){
+            if (message) {
                 this.snackbar = true
                 this.snackbarMessage = message
-            }else{
+            } else {
                 this.questions()
                 this.workspace = this.gptDeveloper.getWorkspace()
             }
@@ -274,21 +198,17 @@ export default {
                 questions = questions.concat(lastMessage.content.split('\n').slice(1))
             }
             if (questions.length > 0) {
-                this.inputs = {
+                this.input=  {
                     role: lastMessage.role, questions
                 }
                 this.expanded = "3"
             }
         },
-        async next(lines) {
-            this.inputs = {}
+        async next(e) {
+            this.input = {}
             var answer = 'skip'
-            if (lines) {
-                var questionsAnswers = []
-                lines.forEach((question, index) => questionsAnswers.push(
-                    `${question} ${this.answers[index]}`
-                ))
-                answer = `user clarifications:\n ${questionsAnswers.join('\n')}`
+            if (e.answers.length > 0) {
+                answer = `user clarifications:\n ${e.answers.join('\n')}`
             }
             this.gptDeveloper.getPrompts().prompt = answer
             await this.gptDeveloper.run()

@@ -5,7 +5,7 @@ import preprompts from '../preprompts'
 
 export default class GptDeveloper {
     constructor (config, apiKey, model, project, main_prompt) {
-        this.status = { generating: false }
+        this.status = { generating: false, finished: false }
         this.apiKey = apiKey
         this.model = model
         this.project = project
@@ -35,7 +35,8 @@ export default class GptDeveloper {
     }
     
     async run() {
-        this.status.generating = true
+        this.status.finished = this.steps.find(step => !step.fullfilled) === undefined
+        this.status.generating = !this.status.finished
         if(!this.ai.modelValid){
             var message = await this.ai.validateModel()
             this.model =  this.ai.model
@@ -47,8 +48,12 @@ export default class GptDeveloper {
         var step = this.steps.find(step => !step.fullfilled)
         if (step) {
             await step.execute(this.ai, this.dbs)
-            if (await this.fullfillStep()) {
-                await this.run()
+            if(await this.fullfillStep()){
+                this.status.finished = this.steps.find(step => !step.fullfilled) === undefined
+                this.status.generating = !this.status.finished
+                if (this.status.generating) {
+                    await this.run()
+                }
             }
         }
     }
@@ -57,14 +62,14 @@ export default class GptDeveloper {
         var messages = this.dbs.messages
         var lastMessage = messages[messages.length - 1]
         var step = this.steps.find(step => !step.fullfilled)
+
         if (lastMessage.content.toLowerCase().indexOf('?') === -1) {
             step.fullfilled = true
         } else {
             console.log('awaiting user input')
             this.awaiting = true
         }
-        this.status.generating = this.steps.find(step => !step.fullfilled) !== undefined
-        this.status.finished = this.steps.find(step => !step.fullfilled) === undefined
+
         return step.fullfilled
     }
 

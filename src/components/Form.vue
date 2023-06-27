@@ -1,4 +1,22 @@
 <template>
+    <div class="text-center">
+        <v-snackbar
+        v-model="snackbar"
+        timeout="10000"
+        >
+        {{ snackbarMessage }}
+
+        <template v-slot:actions>
+            <v-btn
+            color="blue"
+            variant="text"
+            @click="snackbar = false"
+            >
+            Close
+            </v-btn>
+        </template>
+        </v-snackbar>
+    </div>
     <v-container fluid class="page">
         <v-container class="page_items">
             <v-row v-if="status.generating">
@@ -198,7 +216,9 @@ export default {
             configs: ['default'],
             selectedConfig: "default",
             gptDeveloper: null,
-            status: { generating: false, finished: false }
+            status: { generating: false, finished: false },
+            snackbarMessage: null,
+            snackbar: false
         };
     },
     computed: {
@@ -237,9 +257,14 @@ export default {
                 this.prompt
             )
             this.status = this.gptDeveloper.status
-            await this.gptDeveloper.run()
-            this.questions()
-            this.workspace = this.gptDeveloper.getWorkspace()
+            var message = await this.gptDeveloper.run()
+            if(message){
+                this.snackbar = true
+                this.snackbarMessage = message
+            }else{
+                this.questions()
+                this.workspace = this.gptDeveloper.getWorkspace()
+            }
         },
         questions() {
             this.messages = this.gptDeveloper.getMessages()

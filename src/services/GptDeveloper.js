@@ -1,11 +1,11 @@
 import Steps from './Steps.js'
 import AI from './Ai.js'
 import Databases from './Databases.js'
-import preprompts from '@/Preprompts'
+import preprompts from '../preprompts'
 
 export default class GptDeveloper {
     constructor (config, apiKey, model, project, main_prompt) {
-        this.status = { generating: true }
+        this.status = { generating: false }
         this.apiKey = apiKey
         this.model = model
         this.project = project
@@ -35,9 +35,14 @@ export default class GptDeveloper {
     }
     
     async run() {
+        this.status.generating = true
         if(!this.ai.modelValid){
-            await this.ai.validateModel()
+            var message = await this.ai.validateModel()
             this.model =  this.ai.model
+            if(message){
+                this.status.generating = false
+                return message;
+            }
         }
         var step = this.steps.find(step => !step.fullfilled)
         if (step) {

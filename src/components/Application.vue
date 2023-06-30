@@ -1,72 +1,74 @@
 <template>
-    <div class="text-center">
-        <v-snackbar v-model="snackbar" timeout="10000">
-            {{ snackbarMessage }}
+    <div>
+        <div class="text-center">
+            <v-snackbar v-model="snackbar" timeout="10000">
+                {{ snackbarMessage }}
 
-            <template v-slot:actions>
-                <v-btn color="blue" variant="text" @click="snackbar = false">
-                    Close
-                </v-btn>
-            </template>
-        </v-snackbar>
-    </div>
-    <v-container fluid class="page">
-        <v-container class="page_items">
-            <v-row v-if="status.generating">
-                <v-col cols="12">
-                    <v-progress-linear indeterminate height="4" color="secondary"></v-progress-linear>
-                </v-col>
-            </v-row>
-            <v-row>
-                <v-col cols="12">
-                    <v-expansion-panels v-model="expanded">
-                        <v-expansion-panel value="1" title="Configuration">
-                            <template v-slot:text>
-                                <configuration :generating="status.generating" @generate="generate"></configuration>
-                            </template>
-                        </v-expansion-panel>
-                    </v-expansion-panels>
-                </v-col>
-            </v-row>
-            <v-row v-if="Object.entries(workspace)">
-                <v-col cols="12">
-                    <v-expansion-panels v-model="expanded">
-                        <v-expansion-panel value="2" title="Workspace">
-                            <template v-slot:text>
-                                <workspace :workspace="workspace" :folderName="projectName"></workspace>
-                            </template>
-                        </v-expansion-panel>
-                    </v-expansion-panels>
-                </v-col>
-            </v-row>
-            <v-row>
-                <v-col cols="12">
-                    <v-expansion-panels v-model="expanded" class="console">
-                        <v-expansion-panel value="3" title="Input" class="console">
-                            <template v-slot:text>
-                                <answers-input :input="input" @answer="next" @skip="next"></answers-input>
-                            </template>
-                        </v-expansion-panel>
-                    </v-expansion-panels>
-                </v-col>
-            </v-row>
-        </v-container>
-        <v-expansion-panels v-model="expanded">
-            <v-expansion-panel value="4" title="Logs" id="console">
-                <template v-slot:text>
-                    <v-container class="output">
-                        <v-row>
-                            <v-col cols="12">
-                                <p v-if="this.gptDeveloper" v-for="message in this.gptDeveloper.getMessages()"><span
-                                        class="role">{{ message.role }}</span><span class="content">: {{ message.content
-                                        }}</span></p>
-                            </v-col>
-                        </v-row>
-                    </v-container>
+                <template v-slot:actions>
+                    <v-btn color="blue" variant="text" @click="snackbar = false">
+                        Close
+                    </v-btn>
                 </template>
-            </v-expansion-panel>
-        </v-expansion-panels>
-    </v-container>
+            </v-snackbar>
+        </div>
+        <v-container fluid class="page">
+            <v-container class="page_items">
+                <v-row v-if="status.generating">
+                    <v-col cols="12">
+                        <v-progress-linear indeterminate height="4" color="secondary"></v-progress-linear>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col cols="12">
+                        <v-expansion-panels v-model="expanded">
+                            <v-expansion-panel value="1" title="Configuration">
+                                <template v-slot:text>
+                                    <configuration :generating="status.generating" @generate="generate"></configuration>
+                                </template>
+                            </v-expansion-panel>
+                        </v-expansion-panels>
+                    </v-col>
+                </v-row>
+                <v-row v-if="Object.entries(workspace)">
+                    <v-col cols="12">
+                        <v-expansion-panels v-model="expanded">
+                            <v-expansion-panel value="2" title="Workspace">
+                                <template v-slot:text>
+                                    <workspace :workspace="workspace" :folderName="projectName"></workspace>
+                                </template>
+                            </v-expansion-panel>
+                        </v-expansion-panels>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col cols="12">
+                        <v-expansion-panels v-model="expanded" class="console">
+                            <v-expansion-panel value="3" title="Input" class="console">
+                                <template v-slot:text>
+                                    <answers-input :input="input" @answer="next" @skip="next"></answers-input>
+                                </template>
+                            </v-expansion-panel>
+                        </v-expansion-panels>
+                    </v-col>
+                </v-row>
+            </v-container>
+            <v-expansion-panels v-model="expanded">
+                <v-expansion-panel value="4" title="Logs" id="console">
+                    <template v-slot:text>
+                        <v-container class="output">
+                            <v-row>
+                                <v-col cols="12">
+                                    <p v-if="this.gptDeveloper" v-for="message in this.gptDeveloper.getMessages()"><span
+                                            class="role">{{ message.role }}</span><span class="content">: {{ message.content
+                                            }}</span></p>
+                                </v-col>
+                            </v-row>
+                        </v-container>
+                    </template>
+                </v-expansion-panel>
+            </v-expansion-panels>
+        </v-container>
+    </div>
 </template>
 <style scoped>
 #console::v-deep(.v-expansion-panel-text__wrapper) {
@@ -198,7 +200,7 @@ export default {
                 questions = questions.concat(lastMessage.content.split('\n').slice(1))
             }
             if (questions.length > 0) {
-                this.input=  {
+                this.input = {
                     role: lastMessage.role, questions
                 }
                 this.expanded = "3"

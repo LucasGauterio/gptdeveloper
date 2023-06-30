@@ -1,17 +1,19 @@
 <template>
-    <v-card class="mt-2" v-if="input.questions">
-        <v-card-title>{{ input.role }}</v-card-title>
-        <v-card-text>
-            <v-text-field v-for="(question, index) in input.questions" :label="question"
-                v-model="answers[index]"></v-text-field>
-        </v-card-text>
-        <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="green" :disabled="this.answers.join('') === ''" @click.stop="answer(true)">Answer</v-btn>
-            <v-btn color="orange" @click.stop="answer(false)">Skip</v-btn>
-        </v-card-actions>
-    </v-card>
-    <div v-if="!input.questions">The assistant doesn't need user input at the moment</div>
+    <div>
+        <v-card class="mt-2" v-if="input.questions">
+            <v-card-title>{{ input.role }}</v-card-title>
+            <v-card-text>
+                <v-text-field v-for="(question, index) in input.questions" :label="question"
+                    v-model="answers[index]"></v-text-field>
+            </v-card-text>
+            <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn color="green" :disabled="this.answers.join('') === ''" @click.stop="answer(true)">Answer</v-btn>
+                <v-btn color="orange" @click.stop="answer(false)">Skip</v-btn>
+            </v-card-actions>
+        </v-card>
+        <div v-if="!input.questions">The assistant doesn't need user input at the moment</div>
+    </div>
 </template>
 <style scoped></style>
 <script>

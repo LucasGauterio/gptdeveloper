@@ -18,6 +18,7 @@ export default class GptDeveloper {
         )
 
         this.steps = Steps.STEPS[config].map((step) => ({
+            name: step.name,
             execute: step,
             fullfilled: false
         }))
@@ -62,8 +63,8 @@ export default class GptDeveloper {
         var messages = this.dbs.messages
         var lastMessage = messages[messages.length - 1]
         var step = this.steps.find(step => !step.fullfilled)
-
-        if (lastMessage.content.toLowerCase().indexOf('?') === -1) {
+        var needsClarification = (step.name === 'clarify' && lastMessage.content.toLowerCase().indexOf('?') > -1)
+        if (!needsClarification) {
             step.fullfilled = true
         } else {
             console.log('awaiting user input')
@@ -87,5 +88,9 @@ export default class GptDeveloper {
 
     getSteps(){
         return this.dbs.steps
+    }
+
+    currentStep(){
+        return this.steps.find(step => !step.fullfilled)
     }
 }

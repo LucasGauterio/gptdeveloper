@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="page">
         <div class="text-center">
             <v-snackbar v-model="snackbar" timeout="10000">
                 {{ snackbarMessage }}
@@ -146,14 +146,6 @@ export default {
             projectName: "",
         };
     },
-    computed: {
-        tokens() {
-            return encode(this.prompt)
-        },
-        detokens() {
-            return this.tokens.map(token => decode([token]))
-        }
-    },
     watch: {
         status: {
             handler(newVal, oldVal) {
@@ -193,17 +185,20 @@ export default {
             }
         },
         questions() {
-            this.messages = this.gptDeveloper.getMessages()
-            var lastMessage = this.messages[this.messages.length - 1]
-            var questions = []
-            if (lastMessage.content.indexOf('?') > -1) {
-                questions = questions.concat(lastMessage.content.split('\n').slice(1))
-            }
-            if (questions.length > 0) {
-                this.input = {
-                    role: lastMessage.role, questions
+            var step = this.gptDeveloper.currentStep()
+            if(step && step.name === 'clarify'){
+                this.messages = this.gptDeveloper.getMessages()
+                var lastMessage = this.messages[this.messages.length - 1]
+                var questions = []
+                if (lastMessage.content.indexOf('?') > -1) {
+                    questions = questions.concat(lastMessage.content.split('\n').slice(1))
                 }
-                this.expanded = "3"
+                if (questions.length > 0) {
+                    this.input = {
+                        role: lastMessage.role, questions
+                    }
+                    this.expanded = "3"
+                }
             }
         },
         async next(e) {

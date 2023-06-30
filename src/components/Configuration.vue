@@ -41,8 +41,10 @@
 <style scoped></style>
 <script>
 import { encode, decode } from 'gpt-tokenizer'
+import { Configurations } from '../services/Steps'
 export default {
     props: ['generating'],
+    emits: ['generate'],
     data() {
         return {
             showApikey: false,
@@ -62,12 +64,12 @@ export default {
                     "API key is required"
             ],
             colors: ['green', 'purple', 'red', 'blue'],
-            configs: ['default'],
+            configs: Object.values(Configurations),
             apiKey: import.meta.env.VITE_OPENAI_API_KEY,
             selectedModel: "gpt-3.5-turbo",
             selectedConfig: "default",
             projectName: "myproject",
-            prompt: "create a HTML page saying: Hello World!",
+            prompt: "Build a currency converter NodeJS app using an API for exchange rates. Use HTML, CSS, and JavaScript. Allow users to convert between different currencies [BRL, USD, EUR, CNY].",
         }
     },
     computed: {
@@ -76,6 +78,10 @@ export default {
         },
         detokens() {
             return this.tokens.map(token => decode([token]))
+        },
+        configuration(){
+            return Object.entries(Configurations).
+                find(([key, val]) => val === this.selectedConfig)[0]
         }
     },
     methods: {
@@ -83,11 +89,11 @@ export default {
             this.$emit('generate', {
                 apiKey: this.apiKey,
                 model: this.selectedModel,
-                config: this.selectedConfig,
+                config: this.configuration,
                 projectName: this.projectName,
                 prompt: this.prompt,
             });
-        }
+        },        
     }
 }
 </script>

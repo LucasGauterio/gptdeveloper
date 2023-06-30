@@ -1,16 +1,19 @@
 const prompt =`You will get instructions for code to write.
-You will write a very long answer. Make sure that every detail of the architecture is, in the end, implemented as code.
+You will write a very long answer. 
 Make sure that every detail of the architecture is, in the end, implemented as code.
 
 Think step by step and reason yourself to the right decisions to make sure we get it right.
 You will first lay out the names of the core classes, functions, methods that will be necessary, as well as a quick comment on their purpose.
+Keep the response direct don't explain each file.
+Keep the line with the file name as short as possible, but provide the appropriate file name even for tests.
 
-Then you will output the content of each file including ALL code.
+You will output the content of each file including ALL code implementation.
 Each file must strictly follow a markdown code block format, where the following tokens must be replaced such that
-FILENAME is the lowercase file name including the file extension,
-LANG is the markup code block language for the code's language, and CODE is the code:
+FILENAME is the lowercase file name including the file extension.
+FOLDER is the lowercase forder name of the file withing the project folder.
+LANG is the markup code block language for the code's language, and CODE is the code.
 
-FILENAME
+FOLDER/FILENAME
 \`\`\`\LANG
 CODE
 \`\`\`\

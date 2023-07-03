@@ -69,7 +69,7 @@ export default {
             selectedModel: "gpt-3.5-turbo",
             selectedConfig: "default",
             projectName: "myproject",
-            prompt: "Build a currency converter NodeJS app using an API for exchange rates. Use HTML, CSS, and JavaScript. Allow users to convert between different currencies [BRL, USD, EUR, CNY].",
+            prompt: "Create a web application in HTML, CSS, javascript that allows users to resize images by specifying the desired width and height.",
         }
     },
     computed: {

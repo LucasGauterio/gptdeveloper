@@ -17,6 +17,7 @@ export default class AI {
     var message;
     try {
       this.modelData = await this.openai.retrieveModel(this.model);
+      this.modelValid = true;
     } catch (error) {
       message = `Model ${this.model} not available for provided API key. Reverting to gpt-3.5-turbo. Sign up for the GPT-4 wait list here: https://openai.com/waitlist/gpt-4-api`;
       this.model = "gpt-3.5-turbo";

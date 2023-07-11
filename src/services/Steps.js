@@ -70,7 +70,7 @@ async function gen_clarified_code(ai, dbs) {
   to_files(
     code.content, dbs.workspace
   );
-  dbs.logs.code = code
+  dbs.memory.code = code
 }
 async function gen_entrypoint(ai, dbs) {
   let messages = await ai.start(

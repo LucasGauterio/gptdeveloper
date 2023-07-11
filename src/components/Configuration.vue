@@ -4,6 +4,8 @@
         <a target="_blank"
             href="https://platform.openai.com/account/api-keys">https://platform.openai.com/account/api-keys</a>
         <v-form ref="form" autocomplete="off">
+            <v-select v-if="historyItems.length > 0" v-model="selectedProject" :items="historyItems" label="Select a previous configuration?" required></v-select>
+            <v-btn class="deleteHistory" v-if="selectedProject" block color="red" @click.stop="removeHistory()">Delete from history</v-btn>
             <v-text-field v-model="apiKey" label="API Key" required :append-icon="showApikey ? 'mdi-eye' : 'mdi-eye-off'"
                 :type="showApikey ? 'text' : 'password'" @click:append="showApikey = !showApikey"
                 :rules="apiKeyRules"></v-text-field>
@@ -38,13 +40,17 @@
         </v-form>
     </div>
 </template>
-<style scoped></style>
+<style scoped>
+.deleteHistory {
+    margin-bottom: 10px;
+}
+</style>
 <script>
 import { encode, decode } from 'gpt-tokenizer'
 import { Configurations } from '../services/Steps'
 export default {
-    props: ['generating'],
-    emits: ['generate'],
+    props: ['generating', "history", "currentProject"],
+    emits: ['generate', 'selectProject', 'removeHistory'],
     data() {
         return {
             showApikey: false,
@@ -55,8 +61,8 @@ export default {
                     !!v ||
                     "Project name is required",
                 (v) =>
-                    (v && v.length >= 3 && v.length <= 30 && /^[a-zA-Z0-9]+$/.test(v)) ||
-                    "Project name must be between 3 and 30 characters and contain only letters and numbers"
+                    (v && v.length >= 3 && v.length <= 30 && /^[a-zA-Z0-9_-]+$/.test(v)) ||
+                    "Project name must be between 3 and 30 characters and contain only letters and numbers, _ and -"
             ],
             apiKeyRules: [
                 (v) =>
@@ -70,6 +76,21 @@ export default {
             selectedConfig: "default",
             projectName: "myproject",
             prompt: "Create a web application in HTML, CSS, javascript that allows users to resize images by specifying the desired width and height.",
+            selectedProject: this.currentProject,            
+        }
+    },    
+    watch: {
+        selectedProject: {
+            handler(newVal, oldVal) {
+                if(newVal && newVal != ""){
+                    const db = this.history.getDatabase(newVal)
+                    this.projectName = db.project
+                    this.prompt = db.prompts.main_prompt
+                    this.selectProject()
+                }
+            },
+            deep: true,
+            immediate: true
         }
     },
     computed: {
@@ -82,18 +103,29 @@ export default {
         configuration(){
             return Object.entries(Configurations).
                 find(([key, val]) => val === this.selectedConfig)[0]
-        }
+        },
+        historyItems(){
+            return Object.keys(this.history.databases) || []
+        },
     },
     methods: {
         generate() {
             this.$emit('generate', {
+                history: this.selectedHistory,
                 apiKey: this.apiKey,
                 model: this.selectedModel,
                 config: this.configuration,
                 projectName: this.projectName,
                 prompt: this.prompt,
-            });
-        },        
+            })
+        },
+        selectProject() {
+            this.$emit('selectProject', this.selectedProject)
+        },
+        removeHistory(){
+            this.$emit('removeHistory', this.selectedProject)
+            this.selectedProject = null
+        }
     }
 }
 </script>

@@ -1,13 +1,15 @@
 export default class Databases {
 
-    constructor(memory, files, messages, prompts, preprompts, workspace, logs) {
-        this.memory = memory;
-        this.files = files;
-        this.messages = messages;
-        this.prompts = prompts;
-        this.preprompts = preprompts;
-        this.workspace = workspace;
-        this.logs = logs;
+    constructor(model, apikey, config, project, memory, messages, prompts, preprompts, workspace) {
+        this.model = model
+        this.apikey = apikey
+        this.config = config
+        this.project = project
+        this.memory = memory
+        this.messages = messages
+        this.prompts = prompts
+        this.preprompts = preprompts
+        this.workspace = workspace
     }
 
 }

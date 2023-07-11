@@ -23,7 +23,7 @@
                         <v-expansion-panels v-model="expanded">
                             <v-expansion-panel value="1" title="Configuration">
                                 <template v-slot:text>
-                                    <configuration :generating="status.generating" @generate="generate"></configuration>
+                                    <configuration :generating="status.generating" @generate="generate" :history="history" :currentProject="selectedProject" @selectProject="selectProject" @removeHistory="removeHistory"></configuration>
                                 </template>
                             </v-expansion-panel>
                         </v-expansion-panels>
@@ -58,7 +58,7 @@
                         <v-container class="output">
                             <v-row>
                                 <v-col cols="12">
-                                    <p v-if="this.gptDeveloper" v-for="message in this.gptDeveloper.getMessages()"><span
+                                    <p v-if="messages.length > 0" v-for="message in messages"><span
                                             class="role">{{ message.role }}</span><span class="content">: {{ message.content
                                             }}</span></p>
                                 </v-col>
@@ -123,15 +123,17 @@
 }
 </style>
 <script>
+import History from '@/services/History'
 import Workspace from './Workspace.vue'
 import AnswersInput from './Input.vue'
 import Configuration from './Configuration.vue'
 import GptDeveloper from '@/services/GptDeveloper';
-import { encode, decode } from 'gpt-tokenizer'
 export default {
     components: { Workspace, AnswersInput, Configuration },
     data() {
         return {
+            history: new History(),
+            selectedProject: null,
             generating: false,
             finished: false,
             expanded: "1",
@@ -162,11 +164,16 @@ export default {
             immediate: true
         }
     },
+    mounted(){
+        this.history.retrieve()
+    },
     methods: {
         async generate(params) {
             this.outputs = []
             this.answers = []
             this.gptDeveloper = new GptDeveloper(
+                this.history,
+                this.history.getDatabase(this.selectedProject),
                 params.config,
                 params.apiKey,
                 params.model,
@@ -180,14 +187,14 @@ export default {
                 this.snackbar = true
                 this.snackbarMessage = message
             } else {
-                this.questions()
+                this.messages = this.gptDeveloper.getMessages()
                 this.workspace = this.gptDeveloper.getWorkspace()
+                this.questions()
             }
         },
         questions() {
             var step = this.gptDeveloper.currentStep()
             if(step && step.name === 'clarify'){
-                this.messages = this.gptDeveloper.getMessages()
                 var lastMessage = this.messages[this.messages.length - 1]
                 var questions = []
                 if (lastMessage.content.indexOf('?') > -1) {
@@ -211,6 +218,15 @@ export default {
             await this.gptDeveloper.run()
             this.questions()
         },
+        selectProject(projectKey){
+            this.selectedProject = projectKey
+            const project = this.history.getDatabase(this.selectedProject)
+            this.workspace = project.workspace
+            this.messages = project.messages            
+        },
+        removeHistory(projectKey){
+            this.history.remove(projectKey)
+        }
     }
 };
 </script>

@@ -1,4 +1,5 @@
 import { Configuration, OpenAIApi } from "openai";
+import { Exception } from "sass";
 
 export default class AI {
   constructor(model = "gpt-3.5-turbo", temperature = 0.1, apiKey) {
@@ -68,6 +69,7 @@ export default class AI {
     }catch(e){
       console.log(`Error received from openai API`)
       console.error(e)
+      throw new Exception(`Error received from openai API`, e)
     }
     return messages;
   }

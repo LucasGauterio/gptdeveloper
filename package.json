@@ -22,7 +22,7 @@
     "webfontloader": "^1.0.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.0.0",
+    "@vitejs/plugin-vue": "^4.6.2",
     "eslint": "^8.51.0",
     "eslint-plugin-vue": "^9.3.0",
     "sass": "^1.69.2",
